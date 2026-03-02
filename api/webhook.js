@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
     const aiData = await aiResponse.json();
 
-    let reply = "AI 暂时不可用，请稍后再试。";
+    let reply = JSON.stringify(aiData);";
 
     if (aiData.choices && aiData.choices.length > 0) {
       reply = aiData.choices[0].message.content;
