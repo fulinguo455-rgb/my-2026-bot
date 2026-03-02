@@ -1,0 +1,7 @@
+{
+  "name": "telegram-vercel-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot deployed on Vercel",
+  "type": "module",
+  "dependencies": {}
+}
