@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(200).send("AI Bot is running");
+    return res.status(200).send("Bot running");
   }
 
   try {
-    const body = req.body;
+    const body = req.body || {};
     const message = body.message;
 
     if (!message || !message.text) {
@@ -14,46 +14,46 @@ export default async function handler(req, res) {
     const chatId = message.chat.id;
     const userText = message.text;
 
-    // 调用 OpenRouter 免费模型
-    const aiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "HTTP-Referer": "https://your-vercel-domain.vercel.app",
-        "X-Title": "My Telegram AI Bot"
-      },
-      body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct",
-        messages: [
-          { role: "system", content: "你是一个聪明、有帮助的AI助手，回答要清晰简洁。" },
-          { role: "user", content: userText }
-        ]
-      })
-    });
+    let reply = "AI 暂时不可用";
 
-    const aiData = await aiResponse.json();
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + (process.env.OPENROUTER_API_KEY || "")
+        },
+        body: JSON.stringify({
+          model: "openchat/openchat-7b",
+          messages: [
+            { role: "user", content: userText }
+          ]
+        })
+      });
 
-    let reply = JSON.stringify(aiData);";
+      const data = await response.json();
 
-    if (aiData.choices && aiData.choices.length > 0) {
-      reply = aiData.choices[0].message.content;
+      if (data && data.choices && data.choices.length > 0) {
+        reply = data.choices[0].message.content;
+      }
+
+    } catch (err) {
+      console.log("AI error:", err);
     }
 
-    // 发送回 Telegram
-    await fetch(`https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`, {
+    await fetch("https://api.telegram.org/bot" + process.env.BOT_TOKEN + "/sendMessage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        text: reply
+        text: reply.substring(0, 4000)
       })
     });
 
     return res.status(200).end();
 
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Fatal error:", error);
     return res.status(200).end();
   }
 }
