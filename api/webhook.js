@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(200).send("Bot running");
+    return res.status(200).send("Gemini Bot running");
   }
 
   try {
@@ -17,38 +17,52 @@ export default async function handler(req, res) {
     let reply = "AI 暂时不可用";
 
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + (process.env.OPENROUTER_API_KEY || "")
-        },
-        body: JSON.stringify({
-          model: "openchat/openchat-7b",
-          messages: [
-            { role: "user", content: userText }
-          ]
-        })
-      });
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + process.env.GEMINI_API_KEY,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: userText }
+                ]
+              }
+            ]
+          })
+        }
+      );
 
       const data = await response.json();
 
-      if (data && data.choices && data.choices.length > 0) {
-        reply = data.choices[0].message.content;
+      if (
+        data &&
+        data.candidates &&
+        data.candidates[0] &&
+        data.candidates[0].content &&
+        data.candidates[0].content.parts
+      ) {
+        reply = data.candidates[0].content.parts[0].text;
       }
 
     } catch (err) {
-      console.log("AI error:", err);
+      console.log("Gemini error:", err);
     }
 
-    await fetch("https://api.telegram.org/bot" + process.env.BOT_TOKEN + "/sendMessage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: reply.substring(0, 4000)
-      })
-    });
+    await fetch(
+      "https://api.telegram.org/bot" + process.env.BOT_TOKEN + "/sendMessage",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: reply.substring(0, 4000)
+        })
+      }
+    );
 
     return res.status(200).end();
 
